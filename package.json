@@ -1,0 +1,26 @@
+{
+  "name": "fullstack-open-part4",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "cross-env NODE_ENV=production node index.js",
+    "dev": "cross-env NODE_ENV=development node --watch index.js",
+    "test": "cross-env  NODE_ENV=test node --test",
+    "lint": "eslint ."
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "lodash": "^4.18.1",
+    "mongoose": "^9.7.4",
+    "morgan": "^1.11.0",
+    "npm-watch": "^0.13.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2"
+  }
+}
