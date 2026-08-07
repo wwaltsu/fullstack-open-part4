@@ -1,46 +1,114 @@
+const blogs = require('../utils/list_helper')
 const assert = require('node:assert')
-const { test, after, beforeEach } = require('node:test')
+const { test, after, beforeEach, describe } = require('node:test')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const helper = require('./test_helper')
 const Blog = require('../models/blog')
+const { find } = require('lodash')
 
 const api = supertest(app)
 
-beforeEach(async () => {
-  await Blog.deleteMany({})
+describe('if there are initially some blogs saved', () => {
+  beforeEach(async () => {
+    await Blog.deleteMany({})
+    await Blog.insertMany(helper.initialBlogs)
+  })
 
-  let blogObject = new Blog(helper.initialBlogs[0])
-  await blogObject.save()
+  test('blogs are returned as json', async () => {
+    await api
+      .get('/api/blogs')
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+  })
 
-  blogObject = new Blog(helper.initialBlogs[1])
-  await blogObject.save()
+  test('all blogs are returned', async () => {
+    const response = await api.get('/api/blogs')
+
+    assert.strictEqual(response.body.length, helper.initialBlogs.length)
+  })
+
+  describe('adding a new blog', () => {
+    test('a valid blog can be added ', async () => {
+      const newBlog = {
+        title: 'A clever fox',
+        author: 'Franklin',
+        url: 'https://asd.com'
+      }
+
+      await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(201)
+        .expect('Content-Type', /application\/json/)
+
+      const blogsAtEnd = await helper.blogsInDb()
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1)
+
+      const titles = blogsAtEnd.map((r) => r.title)
+      console.log('🚀 ~ titles:', titles)
+
+      // added blog with no likes test
+      const addedBlog = blogsAtEnd.find((blog) => blog.title === 'A clever fox')
+      assert.strictEqual(addedBlog.likes, 0)
+    })
+  })
+
+  describe('adding a new blog without author ', () => {
+    test('a valid blog can be added ', async () => {
+      const newBlog = {
+        title: 'Finding dream',
+        url: 'findDream.com',
+        likes: 13
+      }
+
+      const response = await api.post('/api/blogs').send(newBlog).expect(400)
+      const responseError = JSON.parse(response.text)
+
+      assert.strictEqual(responseError.error, 'blog is missing author')
+    })
+  })
+
+  describe('adding a new blog without title ', () => {
+    test('a valid blog can be added ', async () => {
+      const newBlog = {
+        author: 'Jaakko',
+        url: 'findDream.com',
+        likes: 13
+      }
+
+      const response = await api.post('/api/blogs').send(newBlog).expect(400)
+      const responseError = JSON.parse(response.text)
+
+      assert.strictEqual(responseError.error, 'blog is missing title')
+    })
+  })
+
+  describe('adding a new blog without url ', () => {
+    test('missing url causes blog not to be posted', async () => {
+      const newBlog = {
+        title: 'Build a dream home',
+        author: 'Jaakko',
+        likes: 13
+      }
+
+      const response = await api.post('/api/blogs').send(newBlog).expect(400)
+      const responseError = JSON.parse(response.text)
+
+      assert.strictEqual(responseError.error, 'blog is missing url')
+    })
+  })
+
+  test('blog has entry of id', async () => {
+    const response = await api.get('/api/blogs')
+    const hasId = Object.keys(response.body[0]).includes('id')
+    assert.strictEqual(hasId, true)
+  })
+
+  after(async () => {
+    await mongoose.connection.close()
+  })
 })
 
-test.only('blogs are returned as json', async () => {
-  const response = await api
 
-  await api
-    .get('/api/blogs')
-    .expect(200)
-    .expect('Content-Type', /application\/json/)
-
-  console.log(JSON.stringify(response.body, null, 2))
-})
-
-test.only('all blogs are returned', async () => {
-  const response = await api.get('/api/blogs')
-  const titles = response.body.map(({ title, author, likes, url }) => ({
-    title,
-    author,
-    likes,
-    url
-  }))
-  console.log('🚀 ~ titles:', titles)
-  assert.strictEqual(response.body.length, helper.initialBlogs.length)
-})
-
-after(async () => {
-  await mongoose.connection.close()
-})
