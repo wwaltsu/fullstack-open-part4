@@ -63,10 +63,10 @@ blogsRouter.put('/:id', async (request, response, next) => {
         return response.status(404).end()
       }
 
-      ;((body.title = title),
-        (body.author = author),
-        (body.url = url),
-        (body.likes = likes))
+      blog.title = title
+      blog.author = author
+      blog.url = url
+      blog.likes = likes
 
       return blog.save().then((updatedBlog) => {
         response.json(updatedBlog)

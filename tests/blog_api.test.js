@@ -6,7 +6,7 @@ const supertest = require('supertest')
 const app = require('../app')
 const helper = require('./test_helper')
 const Blog = require('../models/blog')
-const { find } = require('lodash')
+const { find, update } = require('lodash')
 
 const api = supertest(app)
 
@@ -47,9 +47,8 @@ describe('if there are initially some blogs saved', () => {
       assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length + 1)
 
       const titles = blogsAtEnd.map((r) => r.title)
-      console.log('🚀 ~ titles:', titles)
 
-      // added blog with no likes test
+      // added a blog with no initial likes
       const addedBlog = blogsAtEnd.find((blog) => blog.title === 'A clever fox')
       assert.strictEqual(addedBlog.likes, 0)
     })
@@ -106,9 +105,60 @@ describe('if there are initially some blogs saved', () => {
     assert.strictEqual(hasId, true)
   })
 
+  describe('updating an added blog', () => {
+    test('a valid blog can be added ', async () => {
+      const blogsAtStart = await helper.blogsInDb()
+      console.log('🚀 ~ blogsAtStart:', blogsAtStart)
+      const blogToBeUpdated = blogsAtStart[0]
+
+      const changedBlog = {
+        title: 'A sad elephant',
+        author: 'Franklin',
+        url: 'https://bcd.com',
+        likes: 15
+      }
+
+      await api
+        .put(`/api/blogs/${blogToBeUpdated.id}`)
+        .send(changedBlog)
+        .expect(200)
+        .expect('Content-Type', /application\/json/)
+
+      const blogsAtEnd = await helper.blogsInDb()
+      const updatedBlog = blogsAtEnd.find(
+        (blog) => blog.id === blogToBeUpdated.id
+      )
+      console.log('🚀 ~ updatedBlog:', updatedBlog)
+
+      const expectedBlog = {
+        title: changedBlog.title,
+        author: changedBlog.author,
+        url: changedBlog.url,
+        likes: changedBlog.likes,
+        id: blogToBeUpdated.id
+      }
+
+      assert.deepEqual(updatedBlog, expectedBlog)
+    })
+  })
+
+  describe('deletion of a blog', () => {
+    test('succeeds with status code 204 if id is valid', async () => {
+      const blogsAtStart = await helper.blogsInDb()
+      const blogToDelete = blogsAtStart[0]
+
+      await api.delete(`/api/blogs/${blogToDelete.id}`).expect(204)
+
+      const blogsAtEnd = await helper.blogsInDb()
+
+      const ids = blogsAtEnd.map((n) => n.id)
+      assert(!ids.includes(blogToDelete.id))
+
+      assert.strictEqual(blogsAtEnd.length, helper.initialBlogs.length - 1)
+    })
+  })
+
   after(async () => {
     await mongoose.connection.close()
   })
 })
-
-
