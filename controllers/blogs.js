@@ -1,29 +1,34 @@
 const blogsRouter = require('express').Router()
 const Blog = require('../models/blog')
+const User = require('../models/user')
 
 blogsRouter.get('/', async (request, response) => {
-  Blog.find({}).then((blogs) => {
-    response.json(blogs)
-  })
+  const blogs = await Blog.find({})
+  response.json(blogs)
 })
 
 blogsRouter.get('/:id', async (request, response, next) => {
-  Blog.findById(request.params.id)
-    .then((blog) => {
-      if (blog) {
-        response.json(blog)
-      } else {
-        response.status(404).end()
-      }
-    })
-    .catch((error) => next(error))
+  try {
+    const blog = Blog.findById(request.params.id)
+
+    if (blog) {
+      response.json(blog)
+    } else {
+      response.status(404).end()
+    }
+  } catch (error) {
+    next(error)
+  }
 })
 
 blogsRouter.post('/', async (request, response, next) => {
   const body = request.body
+  const user = await User.findById(body.userId)
 
+  if (!user) {
+    return response.status(400).json({ error: 'userId missing or not valid' })
+  }
   if (!body.title) {
-    console.log('Missing title')
     return response.status(400).json({ error: 'blog is missing title' })
   }
   if (!body.url) {
@@ -32,55 +37,53 @@ blogsRouter.post('/', async (request, response, next) => {
   if (!body.author) {
     return response.status(400).json({ error: 'blog is missing author' })
   }
-  Blog.findOne({ author: body.author }).then((existingBlog) => {
-    if (existingBlog) {
-      return response.status(400).json({
-        error: 'author must be unique'
-      })
-    }
+  const existingBlog = await Blog.findOne({ author: body.author })
 
-    const blog = new Blog({
-      title: body.title,
-      author: body.author,
-      url: body.url,
-      likes: body.likes || 0
+  if (existingBlog) {
+    return response.status(400).json({
+      error: 'author must be unique'
     })
-    blog
-      .save()
-      .then((savedBlog) => {
-        response.status(201).json(savedBlog)
-      })
-      .catch((error) => next(error))
+  }
+
+  const blog = new Blog({
+    title: body.title,
+    author: body.author,
+    url: body.url,
+    likes: body.likes || 0,
+    user: user._id
   })
+
+  const savedBlog = await blog.save()
+  user.blogs = user.blogs.concat(savedBlog._id)
+  await user.save()
+  response.status(201).json(savedBlog)
 })
 
 blogsRouter.put('/:id', async (request, response, next) => {
   const { title, author, url, likes } = request.body
 
-  Blog.findById(request.params.id)
-    .then((blog) => {
-      if (!blog) {
-        return response.status(404).end()
-      }
+  try {
+    const blog = await Blog.findById(request.params.id)
 
-      blog.title = title
-      blog.author = author
-      blog.url = url
-      blog.likes = likes
+    if (!blog) {
+      return response.status(404).end()
+    }
 
-      return blog.save().then((updatedBlog) => {
-        response.json(updatedBlog)
-      })
-    })
-    .catch((error) => next(error))
+    blog.title = title
+    blog.author = author
+    blog.url = url
+    blog.likes = likes
+
+    const updatedBlog = await blog.save()
+    response.json(updatedBlog)
+  } catch (error) {
+    next(error)
+  }
 })
 
 blogsRouter.delete('/:id', async (request, response, next) => {
-  Blog.findByIdAndDelete(request.params.id)
-    .then(() => {
-      response.status(204).end()
-    })
-    .catch((error) => next(error))
+  await Blog.findByIdAndDelete(request.params.id)
+  response.status(204).end()
 })
 
 module.exports = blogsRouter
