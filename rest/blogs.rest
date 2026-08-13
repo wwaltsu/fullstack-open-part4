@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:3003
+
+###
+POST {{baseUrl}}/api/blogs
+Content-Type: application/json
+
+{
+  "title": "bblg",
+  "author": "olive1r",
+  "url": "url",
+  "likes": 99,
+  "userId": "6a7d117fefb9283e998b2eea"
+}
