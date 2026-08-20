@@ -12,6 +12,14 @@ const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
+const tokenExtractor = (request, response, next) => {
+  console.log((request.token = 'token'))
+  const authorization = request.get('authorization')
+  request.token = authorization
+  console.log(request.token)
+  next()
+}
+
 const errorHandler = (error, request, response, next) => {
   logger.error(error.message)
 
@@ -26,6 +34,8 @@ const errorHandler = (error, request, response, next) => {
     return response
       .status(400)
       .json({ error: 'expected `username` to be unique' })
+  } else if (error.name === 'JsonWebTokenError') {
+    return response.status(401).json({ error: 'token missing or invalid' })
   }
 
   next(error)
@@ -34,5 +44,6 @@ const errorHandler = (error, request, response, next) => {
 module.exports = {
   requestLogger,
   unknownEndpoint,
-  errorHandler
+  errorHandler,
+  tokenExtractor
 }

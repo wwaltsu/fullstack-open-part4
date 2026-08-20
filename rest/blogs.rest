@@ -1,12 +1,12 @@
 @baseUrl = http://localhost:3003
 
-###
 POST {{baseUrl}}/api/blogs
 Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImRhYXdhd2Rhd2F3ZCIsImlkIjoiNmE4NjI0OWVmYjA0Zjg5ZTI1YWRiMzM1IiwiaWF0IjoxNzg3MjMwNDYwfQ.6iPOJd8bQXKtnFu8WMep8-PRzsvcPTIQ3Aa0B0pE7wc
 
 {
   "title": "bblg",
-  "author": "olive1r",
+  "author": "dd",
   "url": "url",
   "likes": 99,
   "userId": "6a7d117fefb9283e998b2eea"
