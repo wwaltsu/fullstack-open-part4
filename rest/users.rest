@@ -5,7 +5,7 @@ POST {{baseUrl}}/api/users
 Content-Type: application/json
 
 {
-  "username": "daawawdawawd",
-  "password": "424343245235"
-  "name": "Doe",
+  "username": "aaaaa",
+  "password": "424343245235",
+  "name": "Doe"
 }

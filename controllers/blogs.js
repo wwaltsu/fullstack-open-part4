@@ -4,7 +4,10 @@ const User = require('../models/user')
 const jwt = require('jsonwebtoken')
 
 blogsRouter.get('/', async (request, response) => {
-  const blogs = await Blog.find({})
+  const blogs = await Blog.find({}).populate('user', {
+    username: 1,
+    name: 1
+  })
   response.json(blogs)
 })
 
@@ -22,26 +25,14 @@ blogsRouter.get('/:id', async (request, response, next) => {
   }
 })
 
-/*
-const getTokenFrom = (request) => {
-  const authorization = request.get('authorization')
-  if (authorization && authorization.startsWith('Bearer ')) {
-    return authorization.replace('Bearer ', '')
-  }
-  return null
-}
-  */
-
-
-
 blogsRouter.post('/', async (request, response, next) => {
-  //const decodedToken = jwt.verify(getTokenFrom(request), process.env.SECRET)
   const decodedToken = jwt.verify(request.token, process.env.SECRET)
 
   if (!decodedToken.id) {
     return response.status(401).json({ error: 'token invalid' })
   }
   const user = await User.findById(decodedToken.id)
+
   const body = request.body
 
   if (!user) {
@@ -65,11 +56,11 @@ blogsRouter.post('/', async (request, response, next) => {
   }
 
   const blog = new Blog({
+    url: body.url,
     title: body.title,
     author: body.author,
-    url: body.url,
     likes: body.likes || 0,
-    user: user._id
+    user: decodedToken.id
   })
 
   const savedBlog = await blog.save()
@@ -80,6 +71,11 @@ blogsRouter.post('/', async (request, response, next) => {
 
 blogsRouter.put('/:id', async (request, response, next) => {
   const { title, author, url, likes } = request.body
+
+  const user = await User.findById(body.userId)
+  if (!user) {
+    return response.status(400).json({ error: 'userId missing or not valid' })
+  }
 
   try {
     const blog = await Blog.findById(request.params.id)
@@ -95,6 +91,8 @@ blogsRouter.put('/:id', async (request, response, next) => {
 
     const updatedBlog = await blog.save()
     response.json(updatedBlog)
+    user.blogs = user.blogs.concat(updatedBlog._id)
+    await user.save()
   } catch (error) {
     next(error)
   }

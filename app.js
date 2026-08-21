@@ -21,7 +21,6 @@ mongoose
 
 app.use(express.json())
 app.use(middleware.requestLogger)
-// tämä toimimaan
 app.use(middleware.tokenExtractor)
 
 app.use('/api/blogs', blogsRouter)
